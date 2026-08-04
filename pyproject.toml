@@ -1,0 +1,10 @@
+[project]
+name = "vocabprint"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "pandas>=3.0.5",
+    "pandas-stubs~=3.0.5",
+    "pyside6>=6.11.1",
+    "reportlab>=5.0.0",
+]

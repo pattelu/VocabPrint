@@ -1,0 +1,1 @@
+App for print vocabs to learn, without fighting with spreadsheet app to fit it properly.
