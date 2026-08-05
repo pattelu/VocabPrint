@@ -27,5 +27,6 @@ Thumbs.db
 fonts/
 *.csv
 *.pdf
+tmp/
 
 

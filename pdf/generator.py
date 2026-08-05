@@ -1,5 +1,6 @@
 import re
 
+from pypdf import PdfWriter, PdfReader
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -16,27 +17,14 @@ from reportlab.platypus import (
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
 
-def create_chunks(df):
-    rows_per_page = 32
-
-    chunks = []
-
-    for start in range(0, len(df), rows_per_page):
-        end = start + rows_per_page
-
-        chunks.append(df.iloc[start:end])
-
-    return chunks
-
-
-def create_pdf(chunks):
+def create_pdf(vocabs):
     pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
     pdfmetrics.registerFont(
         TTFont("NotoSansCJK", "fonts/NotoSansCJKjp-Regular.ttf", subfontIndex=0)
     )
 
     pdf = SimpleDocTemplate(
-        "vocabs.pdf",
+        "tmp/vocabs.pdf",
         pagesize=landscape(A4),
         rightMargin=10,
         leftMargin=10,
@@ -83,50 +71,73 @@ def create_pdf(chunks):
         ]
     )
 
-    elements = []
+    front = vocabs.iloc[:, 0:5]
+    back = vocabs.iloc[:, 5:7]
 
-    for chunk in chunks:
-        front = chunk.iloc[:, 0:5]
-        back = chunk.iloc[:, 5:7]
+    tmp_front_table = front.values.tolist()
+    tmp_back_table = back.values.tolist()
 
-        tmp_front_table = front.values.tolist()
-        tmp_back_table = back.values.tolist()
+    for row in range(0, len(vocabs)):
+        if row % 2 == 0:
+            style_front.add("BACKGROUND", (0, row), (-1, row), colors.lightgrey)
+            style_back.add("BACKGROUND", (0, row), (-1, row), colors.lightgrey)
 
-        for row in range(0, len(chunk)):
-            if row % 2 == 0:
-                style_front.add("BACKGROUND", (0, row), (-1, row), colors.lightgrey)
-                style_back.add("BACKGROUND", (0, row), (-1, row), colors.lightgrey)
+    front_table = []
+    back_table = []
 
-        front_table = []
-        back_table = []
+    for row in tmp_front_table:
+        row[-1] = Paragraph(str(row[-1]), jp_style)
+        front_table.append(row)
 
-        for row in tmp_front_table:
-            row[-1] = Paragraph(str(row[-1]), jp_style)
-            front_table.append(row)
+    for row in tmp_back_table:
+        row[-1] = Paragraph(str(row[-1]), latin_style)
+        back_table.append(row)
 
-        for row in tmp_back_table:
-            row[-1] = Paragraph(str(row[-1]), latin_style)
-            back_table.append(row)
+    available_width = pdf.width
 
-        available_width = pdf.width
+    front_width = get_all_width(front_table)
+    front_width.append(available_width - sum(front_width) - 10)
+    front_table = Table(front_table, colWidths=front_width)
 
-        front_width = get_all_width(front_table)
-        front_width.append(available_width - sum(front_width) - 10)
-        front_table = Table(front_table, colWidths=front_width)
+    front_table.wrap(0, 0)
+    row_height = front_table._rowHeights
 
-        back_width = get_all_width(back_table)
-        back_width.append(available_width - sum(back_width) - 10)
-        back_table = Table(back_table, colWidths=back_width)
+    back_width = get_all_width(back_table)
+    back_width.append(available_width - sum(back_width) - 10)
+    back_table = Table(back_table, colWidths=back_width, rowHeights=row_height)
 
-        front_table.setStyle(style_front)
-        back_table.setStyle(style_back)
+    front_table.setStyle(style_front)
+    back_table.setStyle(style_back)
 
-        elements.append(front_table)
-        elements.append(PageBreak())
-        elements.append(back_table)
-        elements.append(PageBreak())
+    elements_front = []
+    elements_back = []
 
-    pdf.build(elements)
+    elements_front.append(front_table)
+    elements_front.append(PageBreak())
+
+    elements_back.append(back_table)
+    elements_back.append(PageBreak())
+
+    pdf.filename = "tmp/vocabs_front.pdf"
+    pdf.build(elements_front)
+
+    pdf.filename = "tmp/vocabs_back.pdf"
+    pdf.build(elements_back)
+
+
+def merge_pdf():
+    front = PdfReader("tmp/vocabs_front.pdf")
+    back = PdfReader("tmp/vocabs_back.pdf")
+    merger = PdfWriter()
+
+    pages = len(front.pages)
+
+    for i in range(pages):
+        merger.add_page(front.pages[i])
+        merger.add_page(back.pages[i])
+
+    with open("vocabs.pdf", "wb") as file:
+        merger.write(file)
 
 
 def get_column_width(rows, column, font_name, font_size, padding=10):

@@ -4,8 +4,8 @@ from pdf import generator
 
 def main():
     vocabs = csv_reader.read_csv("vocab.csv")
-    chunks = generator.create_chunks(vocabs)
-    generator.create_pdf(chunks)
+    generator.create_pdf(vocabs)
+    generator.merge_pdf()
 
 
 if __name__ == "__main__":
