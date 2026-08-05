@@ -1,11 +1,16 @@
-from readers import csv_reader
-from pdf import generator
+from PySide6.QtWidgets import (
+    QApplication,
+)
+from widgets.menu import MenuWindow
 
 
 def main():
-    vocabs = csv_reader.read_csv("vocab.csv")
-    generator.create_pdf(vocabs)
-    generator.merge_pdf()
+    app = QApplication([])
+
+    menu_window = MenuWindow()
+    menu_window.show()
+
+    app.exec()
 
 
 if __name__ == "__main__":

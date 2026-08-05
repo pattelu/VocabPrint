@@ -1,9 +1,10 @@
 import re
+from io import BytesIO
 
 from pypdf import PdfWriter, PdfReader
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import landscape, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
@@ -20,11 +21,23 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 def create_pdf(vocabs):
     pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
     pdfmetrics.registerFont(
-        TTFont("NotoSansCJK", "fonts/NotoSansCJKjp-Regular.ttf", subfontIndex=0)
+        TTFont("JapaneseFont", "fonts/NotoSansCJKjp-Regular.ttf", subfontIndex=0)
     )
 
+    buffer1 = BytesIO()
+    buffer2 = BytesIO()
+
     pdf = SimpleDocTemplate(
-        "tmp/vocabs.pdf",
+        buffer1,
+        pagesize=landscape(A4),
+        rightMargin=10,
+        leftMargin=10,
+        topMargin=10,
+        bottomMargin=10,
+    )
+
+    pdf2 = SimpleDocTemplate(
+        buffer2,
         pagesize=landscape(A4),
         rightMargin=10,
         leftMargin=10,
@@ -34,7 +47,7 @@ def create_pdf(vocabs):
 
     jp_style = ParagraphStyle(
         "JPSentence",
-        fontName="NotoSansCJK",
+        fontName="JapaneseFont",
         wordWrap="CJK",
         fontSize=10,
         leading=14,
@@ -42,8 +55,7 @@ def create_pdf(vocabs):
 
     latin_style = ParagraphStyle(
         "LatinSentence",
-        fontName="NotoSans",
-        wordWrap="CJK",
+        fontName="JapaneseFont",
         fontSize=10,
         leading=14,
     )
@@ -51,10 +63,10 @@ def create_pdf(vocabs):
     style_front = TableStyle(
         [
             ("FONT", (0, 0), (0, -1), "NotoSans"),
-            ("FONT", (1, 0), (1, -1), "NotoSansCJK"),
-            ("FONT", (2, 0), (2, -1), "NotoSansCJK"),
+            ("FONT", (1, 0), (1, -1), "JapaneseFont"),
+            ("FONT", (2, 0), (2, -1), "JapaneseFont"),
             ("FONT", (3, 0), (3, -1), "NotoSans"),
-            # ("FONT", (4, 0), (4, -1), "NotoSansCJK"),
+            # ("FONT", (4, 0), (4, -1), "JapaneseFont"),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("ALIGN", (0, 0), (-1, -1), "LEFT"),
@@ -118,16 +130,19 @@ def create_pdf(vocabs):
     elements_back.append(back_table)
     elements_back.append(PageBreak())
 
-    pdf.filename = "tmp/vocabs_front.pdf"
     pdf.build(elements_front)
+    buffer1 = buffer1.getvalue()
 
-    pdf.filename = "tmp/vocabs_back.pdf"
-    pdf.build(elements_back)
+    pdf2.build(elements_back)
+    buffer2 = buffer2.getvalue()
+
+    return buffer1, buffer2
 
 
-def merge_pdf():
-    front = PdfReader("tmp/vocabs_front.pdf")
-    back = PdfReader("tmp/vocabs_back.pdf")
+def merge_pdf(save_path, filename, buffers):
+    front = PdfReader(BytesIO(buffers[0]))
+    back = PdfReader(BytesIO(buffers[1]))
+
     merger = PdfWriter()
 
     pages = len(front.pages)
@@ -136,7 +151,7 @@ def merge_pdf():
         merger.add_page(front.pages[i])
         merger.add_page(back.pages[i])
 
-    with open("vocabs.pdf", "wb") as file:
+    with open(save_path + filename, "wb") as file:
         merger.write(file)
 
 
@@ -169,7 +184,7 @@ def get_all_width(rows):
 
         for row in rows:
             if is_japanese_text(str(row[column])):
-                font_name = "NotoSansCJK"
+                font_name = "JapaneseFont"
                 break
 
         width = get_column_width(rows, column, font_name, 10)
