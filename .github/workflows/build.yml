@@ -3,6 +3,8 @@ name: Build and upload executables
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
+
 
 jobs:
   build:
