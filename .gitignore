@@ -24,7 +24,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-fonts/
 *.csv
 *.pdf
 tmp/

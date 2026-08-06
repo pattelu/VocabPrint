@@ -1,5 +1,7 @@
 import re
 from io import BytesIO
+from pathlib import Path
+import sys
 
 from pypdf import PdfWriter, PdfReader
 from reportlab.lib import colors
@@ -19,9 +21,12 @@ from reportlab.pdfbase.pdfmetrics import stringWidth
 
 
 def create_pdf(vocabs):
-    pdfmetrics.registerFont(TTFont("NotoSans", "fonts/NotoSans-Regular.ttf"))
+    latin_font = resource_path("fonts/NotoSans-Regular.ttf")
+    jp_font = resource_path("fonts/NotoSansCJKjp-Regular.ttf")
+
+    pdfmetrics.registerFont(TTFont("NotoSans", latin_font))
     pdfmetrics.registerFont(
-        TTFont("JapaneseFont", "fonts/NotoSansCJKjp-Regular.ttf", subfontIndex=0)
+        TTFont("JapaneseFont", jp_font, subfontIndex=0)
     )
 
     buffer1 = BytesIO()
@@ -199,3 +204,12 @@ def is_japanese_text(text):
         return False
 
     return bool(re.search(r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]", text))
+
+
+def resource_path(relative_path):
+    if getattr(sys, "frozen", False):
+        base_path = Path(sys._MEIPASS)
+    else:
+        base_path = Path(__file__).parent
+
+    return str(base_path / relative_path)

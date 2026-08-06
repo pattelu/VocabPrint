@@ -1,5 +1,7 @@
+import os
 import subprocess
 import sys
+from pathlib import Path
 
 from PySide6.QtWidgets import QWidget
 from PySide6.QtWidgets import QFileDialog
@@ -59,17 +61,20 @@ class MenuWindow(QWidget, Ui_Form):
     def open_save_folder(self):
         self.label_info.setText("")
 
-        save_path = self.line_save_folder.text()
+        save_path = str(Path(self.line_save_folder.text()).resolve())
+
+        env = os.environ.copy()
+        env.pop("LD_LIBRARY_PATH", None)
 
         if save_path == "":
             self.label_info.setText(f"Wrong path to save directory")
         else:
             try:
                 if sys.platform == "win32":
-                    subprocess.Popen(["explorer", str(save_path)])
+                    subprocess.Popen(["explorer", save_path], env=env)
                 elif sys.platform == "darwin":  # macOS
-                    subprocess.Popen(["open", str(save_path)])
+                    subprocess.Popen(["open", save_path], env=env)
                 else:  # Linux
-                    subprocess.Popen(["xdg-open", str(save_path)])
+                    subprocess.Popen(["xdg-open", save_path], env=env)
             except Exception as e:
                 self.label_info.setText(f"Wrong path to save directory. Exception: {e}")
