@@ -116,12 +116,24 @@ def create_pdf(vocabs):
     front_width.append(available_width - sum(front_width) - 10)
     front_table = Table(front_table, colWidths=front_width)
 
-    front_table.wrap(0, 0)
-    row_height = front_table._rowHeights
-
     back_width = get_all_width(back_table)
     back_width.append(available_width - sum(back_width) - 10)
-    back_table = Table(back_table, colWidths=back_width, rowHeights=row_height)
+    back_table = Table(back_table, colWidths=back_width)
+
+    front_table.wrap(0, 0)
+    front_row_heights = front_table._rowHeights
+
+    back_table.wrap(0, 0)
+    back_row_heights = back_table._rowHeights
+
+    row_heights = []
+    for f, b in zip(front_row_heights, back_row_heights):
+        row_heights.append(max(f, b))
+
+    front_table._rowHeights = row_heights
+    front_table._argH = row_heights
+    back_table._rowHeights = row_heights
+    back_table._argH = row_heights
 
     front_table.setStyle(style_front)
     back_table.setStyle(style_back)
@@ -210,6 +222,6 @@ def resource_path(relative_path):
     if getattr(sys, "frozen", False):
         base_path = Path(sys._MEIPASS)
     else:
-        base_path = Path(__file__).parent
+        base_path = Path(__file__).parent.parent
 
     return str(base_path / relative_path)
